@@ -10,7 +10,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         // Add services to the container.
-
+        builder.Services.AddSignalR();
         builder.Services.AddControllers();
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
@@ -29,8 +29,25 @@ public class Program
         builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
         builder.Services.AddHttpClient<SupabaseService>();
-        var app = builder.Build();
 
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowSignalR", policy =>
+            {
+                policy.WithOrigins("https://localhost:7128") // The URL of your frontend
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials(); // Required for SignalR!
+            });
+        });
+        var app = builder.Build();
+        // Use the CORS policy
+        app.UseCors("AllowSignalR");
+
+        // This creates the URL that the client uses to connect (e.g., /notificationHub)
+        app.MapHub<NotificationHub>("/notificationHub");
+        app.MapHub<ChatHub>("/chatHub");
+        app.MapHub<WhatsAppHub>("/whatsAppHub");
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
         {
